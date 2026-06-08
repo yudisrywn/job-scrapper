@@ -1,0 +1,694 @@
+{
+  "name": "Job Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Job Scraper - Submit Link Lowongan",
+        "formDescription": "Masukkan link lowongan kerja dari Jobstreet, LinkedIn, Glints, atau Upwork untuk disimpan ke spreadsheet.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Link Lowongan",
+              "placeholder": "https://www.jobstreet.co.id/id/job/...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Catatan Tambahan",
+              "fieldType": "textarea",
+              "placeholder": "Opsional: tambahan catatan untuk lowongan ini"
+            }
+          ]
+        },
+        "options": {
+          "respondWithOptions": {
+            "values": {}
+          }
+        }
+      },
+      "id": "162c89f3-8561-4d17-912f-3960300890f8",
+      "name": "Form Trigger - Input Link",
+      "type": "n8n-nodes-base.formTrigger",
+      "position": [
+        -3552,
+        1504
+      ],
+      "typeVersion": 2.2,
+      "webhookId": "26262d4c-0959-401f-bea1-4ae85ddff35b"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "extract-url",
+              "name": "job_url",
+              "type": "string",
+              "value": "={{ $json['Link Lowongan'] }}"
+            },
+            {
+              "id": "extract-note",
+              "name": "catatan",
+              "type": "string",
+              "value": "={{ $json['Catatan Tambahan'] ?? '' }}"
+            },
+            {
+              "id": "detect-platform",
+              "name": "platform",
+              "type": "string",
+              "value": "={{ (() => { const url = ($json['Link Lowongan'] || '').toLowerCase(); if (url.includes('jobstreet')) return 'jobstreet'; if (url.includes('linkedin')) return 'linkedin'; if (url.includes('glints')) return 'glints'; if (url.includes('upwork')) return 'upwork'; return 'unknown'; })() }}"
+            },
+            {
+              "id": "timestamp-input",
+              "name": "submitted_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "373ca375-23d9-45de-a2a1-8798e4fc465c",
+      "name": "Extract & Detect Platform",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -3328,
+        1504
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "jobstreet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5495af6c-ff33-42cc-8005-8cfd30023fca"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Jobstreet"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "linkedin",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a3fa960b-02a7-4cb2-8e57-b83fb01d006a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LinkedIn"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "glints",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e35c595b-5d11-4021-91db-df554e4a66c3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Glints"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "upwork",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "59a60905-53a5-4e48-8181-8ad634e22bf3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Upwork"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Unknown"
+        }
+      },
+      "id": "c9769483-d7a0-4043-9e62-fbf8b777d9ed",
+      "name": "Router Platform",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -3104,
+        1456
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "merge-url-to-raw",
+              "name": "job_url",
+              "type": "string",
+              "value": "={{ $('Extract & Detect Platform').item.json.job_url }}"
+            },
+            {
+              "id": "merge-platform-to-raw",
+              "name": "platform",
+              "type": "string",
+              "value": "={{ $('Extract & Detect Platform').item.json.platform }}"
+            },
+            {
+              "id": "merge-raw-data",
+              "name": "raw_data",
+              "type": "object",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ebb0a1d6-b7c2-44d5-9b9e-3a76f853554e",
+      "name": "Merge Context ke Raw Data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -2368,
+        1568
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Ekstrak lowongan kerja ini menjadi JSON murni dengan field: Posisi, Perusahaan, Requirements, Jobdesk, Lokasi, Jam_Kerja, Gaji.\\n\\nData mentah: \" + JSON.stringify($json.markdown || $json.raw_data?.markdown || $json)\n        }\n      ]\n    }\n  ]\n} }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "52e6cfaa-192a-4357-97ab-aea901075159",
+      "name": "AI Formatter - Extract Job Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -2144,
+        1568
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "parse-ai-json",
+              "name": "parsed",
+              "type": "object",
+              "value": "={{ (() => { try { const raw = $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}'; const match = raw.match(/\\{[\\s\\S]*\\}/); return match ? JSON.parse(match[0]) : {}; } catch(e) { return { error: e.message }; } })() }}"
+            },
+            {
+              "id": "pass-job-url",
+              "name": "job_url",
+              "type": "string",
+              "value": "={{ $('Extract & Detect Platform').item.json.job_url }}"
+            },
+            {
+              "id": "pass-platform",
+              "name": "platform",
+              "type": "string",
+              "value": "={{ $('Extract & Detect Platform').item.json.platform }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "139af494-f7f7-4c95-80ba-16998e9c467e",
+      "name": "Parse AI JSON Output",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1920,
+        1568
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1mGzVuhNkBCUw43OpDIh1YA38xcjBo1MNGmQfTMpccks",
+          "mode": "list",
+          "cachedResultName": "SkillDuniaKerja",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mGzVuhNkBCUw43OpDIh1YA38xcjBo1MNGmQfTMpccks/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Lowongan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mGzVuhNkBCUw43OpDIh1YA38xcjBo1MNGmQfTMpccks/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Perusahaan": "={{ $json.parsed.Perusahaan }}",
+            "Jobdesk": "={{ $json.parsed.Jobdesk }}",
+            "Lokasi": "={{ $json.parsed.Lokasi }}",
+            "link": "={{ $json.job_url }}",
+            "Posisi": "={{ $json.parsed.Posisi }}",
+            "Requirements": "={{ $json.parsed.Requirements }}",
+            "Gaji": "={{ $json.parsed.Gaji }}",
+            "Jam_Kerja": "={{ $json.parsed.Jam_Kerja }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Posisi",
+              "displayName": "Posisi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Perusahaan",
+              "displayName": "Perusahaan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Requirements",
+              "displayName": "Requirements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Jobdesk",
+              "displayName": "Jobdesk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lokasi",
+              "displayName": "Lokasi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Jam_Kerja",
+              "displayName": "Jam_Kerja",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Gaji",
+              "displayName": "Gaji",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b1028551-6bb7-42dc-b650-18c7055d0f87",
+      "name": "Simpan ke Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -1696,
+        1568
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleApi": {
+          "id": "u3IkDdqSnLskIX3V",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error-platform",
+              "name": "platform",
+              "type": "string",
+              "value": "={{ $json.platform }}"
+            },
+            {
+              "id": "error-url",
+              "name": "job_url",
+              "type": "string",
+              "value": "={{ $json.job_url }}"
+            },
+            {
+              "id": "error-msg",
+              "name": "error_message",
+              "type": "string",
+              "value": "Platform tidak dikenali. Pastikan URL berasal dari Jobstreet, LinkedIn, Glints, atau Upwork."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bc2b8dfc-8eba-4ff1-a133-7246156e62bf",
+      "name": "Handle Unknown Platform",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -2816,
+        2016
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "operation": "Scrape single URL",
+        "url": "={{ $('Extract & Detect Platform').first().json.job_url }}"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -2816,
+        1328
+      ],
+      "id": "45e05165-1635-45c2-a4b3-b28ab6d6fa1a",
+      "name": "Jobstreet scrape",
+      "credentials": {
+        "apifyApi": {
+          "id": "5RJTyXvohY00lYOA",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Scrape single URL",
+        "url": "={{ $('Extract & Detect Platform').first().json.job_url }}"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -2816,
+        1488
+      ],
+      "id": "a3b0e421-3a04-41d2-b453-b35906559436",
+      "name": "Linkedin Scrape",
+      "credentials": {
+        "apifyApi": {
+          "id": "5RJTyXvohY00lYOA",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Scrape single URL",
+        "url": "={{ $('Extract & Detect Platform').first().json.job_url }}"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -2816,
+        1664
+      ],
+      "id": "2735bca0-f213-40ef-82c2-853777bc0f41",
+      "name": "Glints Scrape",
+      "credentials": {
+        "apifyApi": {
+          "id": "5RJTyXvohY00lYOA",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Scrape single URL",
+        "url": "={{ $('Extract & Detect Platform').first().json.job_url }}"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -2816,
+        1840
+      ],
+      "id": "d9af460f-6cd5-411a-8dca-a3e1568196ef",
+      "name": "Upwork Scrape",
+      "credentials": {
+        "apifyApi": {
+          "id": "5RJTyXvohY00lYOA",
+          "name": "Apify account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Form Trigger - Input Link": {
+      "main": [
+        [
+          {
+            "node": "Extract & Detect Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Detect Platform": {
+      "main": [
+        [
+          {
+            "node": "Router Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Platform": {
+      "main": [
+        [
+          {
+            "node": "Jobstreet scrape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Linkedin Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Glints Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upwork Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Unknown Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Context ke Raw Data": {
+      "main": [
+        [
+          {
+            "node": "AI Formatter - Extract Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Formatter - Extract Job Data": {
+      "main": [
+        [
+          {
+            "node": "Parse AI JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI JSON Output": {
+      "main": [
+        [
+          {
+            "node": "Simpan ke Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jobstreet scrape": {
+      "main": [
+        [
+          {
+            "node": "Merge Context ke Raw Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linkedin Scrape": {
+      "main": [
+        [
+          {
+            "node": "Merge Context ke Raw Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Glints Scrape": {
+      "main": [
+        [
+          {
+            "node": "Merge Context ke Raw Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upwork Scrape": {
+      "main": [
+        [
+          {
+            "node": "Merge Context ke Raw Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9732e680-f380-4f3c-b29e-2a81a0ca25ec",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c03407928f29539b79f0dea4538a9f73e38caa78c4615f267f11d6ab9192f1a3"
+  },
+  "nodeGroups": [],
+  "id": "2irEv9pSkF1Syc5H",
+  "tags": []
+}
